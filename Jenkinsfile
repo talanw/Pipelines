@@ -8,20 +8,36 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                // Insecure: Cloning from an unverified repository
-                git 'https://github.com/someuser/insecure-repo.git'
+                // Cloning this repository (intentionally insecure)
+                git 'https://github.com/YourUsername/Pipelines.git'
             }
         }
         stage('Build') {
             steps {
-                // Insecure: Running build with secrets in plain text
                 sh './build.sh'
             }
         }
         stage('Test') {
             steps {
-                // Insecure: Using plain text secrets in tests
                 sh 'echo "Testing with key: $SECRET_KEY"'
+            }
+        }
+        stage('Security Check') {
+            steps {
+                script {
+                    // Security check to ensure fixes have been applied
+                    def secretCheck = sh(script: 'grep "SuperSecretKey123" secrets.sh', returnStatus: true)
+                    def repoCheck = sh(script: 'grep "YourUsername/Pipelines.git" Jenkinsfile', returnStatus: true)
+                    
+                    if (secretCheck == 0 || repoCheck == 0) {
+                        error "Security flaws still present. Fix them to proceed."
+                    }
+                }
+            }
+        }
+        stage('Success') {
+            steps {
+                sh 'cat flag.txt'
             }
         }
     }
