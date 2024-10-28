@@ -1,43 +1,31 @@
 pipeline {
     agent any
-
     environment {
-        SECRET_KEY = 'SuperSecretKey123'
+        USER_REPO = "https://github.com/talanw/pipelines.git"
+        USER_DIR = "${env.JENKINS_HOME}/user-${env.BUILD_NUMBER}"
     }
-
     stages {
         stage('Clone Repository') {
             steps {
-                // Cloning this repository (intentionally insecure)
-                git 'https://github.com/YourUsername/Pipelines.git'
-            }
-        }
-        stage('Build') {
-            steps {
-                sh './build.sh'
-            }
-        }
-        stage('Test') {
-            steps {
-                sh 'echo "Testing with key: $SECRET_KEY"'
-            }
-        }
-        stage('Security Check') {
-            steps {
                 script {
-                    // Security check to ensure fixes have been applied
-                    def secretCheck = sh(script: 'grep "SuperSecretKey123" secrets.sh', returnStatus: true)
-                    def repoCheck = sh(script: 'grep "YourUsername/Pipelines.git" Jenkinsfile', returnStatus: true)
-                    
-                    if (secretCheck == 0 || repoCheck == 0) {
-                        error "Security flaws still present. Fix them to proceed."
+                    // Clone repository into user-specific directory
+                    sh "git clone ${USER_REPO} ${USER_DIR}"
+                    dir("${USER_DIR}") {
+                        // Security Issue: Hardcoded sensitive information
+                        // Example of a make command that could expose sensitive data
+                        sh 'make all'
                     }
                 }
             }
         }
-        stage('Success') {
-            steps {
-                sh 'cat flag.txt'
+        // Additional stages can be added here
+    }
+    post {
+        success {
+            script {
+                // Decrypt flag stored in Jenkins credentials
+                sh "echo ${ENCRYPTED_FLAG} | base64 --decode > flag.txt"
+                archiveArtifacts artifacts: 'flag.txt', fingerprint: true
             }
         }
     }
